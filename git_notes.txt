@@ -1,0 +1,10 @@
+git status #// for status
+
+git add -A #// add all
+git add filename #// add filename
+git commit -m "Message" #// commit to local with a Message
+
+git remote add origin https://github.com/udajne-jan/project_it_api.git #// add origin
+git push -u origin master #// Push to remove, origin is origin link, master is branch name
+
+git pull -u origin master #// Pull from origin, master branch, to local
