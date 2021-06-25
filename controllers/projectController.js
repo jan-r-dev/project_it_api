@@ -1,7 +1,14 @@
+const User = require('../models/userModel');
 const Project = require('../models/projectModel');
 
 exports.getAllProjects = async (req, res, next) => {
     try {
+        const projects = req.user.projects.map( el => {
+            return el._id;
+        });
+
+        console.log(projects);
+
         const allProjects = await Project.find();
 
         res.status(201).json({
@@ -21,8 +28,7 @@ exports.createProject = async (req, res, next) => {
     try {
         const newProject = await Project.create(req.body);
 
-        console.log(newProject);
-
+        // CONTINUE FROM HERE
         res.status(201).json({
             status: 'success',
             data: newProject

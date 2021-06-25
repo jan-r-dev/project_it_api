@@ -3,12 +3,17 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const util = require('util');
 
+const retrievePem = async () => {
+    const readFile = util.promisify(fs.readFile);
+    const key = await readFile(`${__dirname}/key.pem`, { encoding: 'utf-8' });
+
+    return key;
+};
 
 const signToken = async id => {
     try {
-        const readFile = util.promisify(fs.readFile);
-        const key = await readFile(`${__dirname}/key.pem`, { encoding: 'utf-8' });
-    
+        const key = await retrievePem();
+
         return jwt.sign(
             { id: id },
             key,
@@ -67,18 +72,57 @@ exports.loginUser = async (req, res, next) => {
     };
 };
 
+exports.validateAccess = async (req, res, next) => {
+    try {
+        let token;
 
+        if (req.cookies.jwt) {
+            token = req.cookies.jwt;
+        } else {
+            throw ('You are not logged');
+        };
 
-//createToken('123');
+        // Test if jwt is valid
+        const verifyToken = util.promisify(jwt.verify);
+        const isValid = await verifyToken(token, await retrievePem(), {
+            algorithms: ['PS512']
+        });
 
+        // Retrieve user and check if exists
+        const user = await User.findById(isValid.id);
+        if (!user || !user.active) throw ('User does not exist or has been deactivated');
 
-// Authorisation
+        // Test if password was changed
+        if (user.passwordChangedAt && !user.passwordChangedCheck(isValid.iat)) throw ('Password was changed. Please log in again');
 
+        // Attach user to the request
+        req.user = user;
+        next();
+    } catch (err) {
+        res.status(401).json({
+            status: 'fail',
+            message: err
+        });
+    };
+};
 
-// Generate token
+exports.changePassword = async (req, res, next) => {
+    try {
+        if (!req.body.password || !req.body.newPassword || !req.body.newPasswordConfirm) throw 'Provide current password, new password, and confirmation';
 
-// Verify token
+        const user = await User.findById(req.user.id).select('+ password');
+        const passCheck = await user.correctPassword(req.body.password, user.password);
+        if (!passCheck) throw 'Incorrect password';
 
-// Signup
-
-// Login
+        user.password = req.body.newPassword;
+        user.passwordConfirm = req.body.newPasswordConfirm;
+    
+        await user.save();
+        createSendToken(user, 200, res);
+    } catch (err) {
+        res.status(401).json({
+            status: 'fail',
+            message: err
+        });
+    };
+};

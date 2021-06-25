@@ -44,8 +44,7 @@ const userSchema = new mongoose.Schema({
     },
     active: {
         type: Boolean,
-        default: true,
-        select: false
+        default: true
     },
     projects: [
         {
@@ -83,6 +82,10 @@ userSchema.methods.correctPassword = async function (candidate, userPassword) {
     return await argon2Verify({ password: candidate, hash: userPassword });
 };
 
+userSchema.methods.passwordChangedCheck = function (candidate) {
+    //candidate = jwt iat timestamp from the provided token
+    return candidate > Math.trunc(this.passwordChangedAt.getTime() / 1000);
+};
 
 const User = mongoose.model('User', userSchema);
 

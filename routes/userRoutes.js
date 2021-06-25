@@ -17,4 +17,9 @@ router.route('/testing/:id')
 router.route('/login')
     .post(authController.loginUser);
 
+router.use(authController.validateAccess);
+
+router.route('/changePassword')
+    .post(authController.changePassword);
+
 module.exports = router;
