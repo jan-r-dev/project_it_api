@@ -72,6 +72,15 @@ userSchema.pre('save', async function (next) {
     next();
 });
 
+userSchema.methods.createPasswordResetToken = function () {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    this.passwordResetExpires = Date.now() + (10 * 60 * 1000); // + 10 minutes + 2 hours for CEST
+
+    return resetToken;
+};
+
 userSchema.methods.correctPassword = async function (candidate, userPassword) {
     return await argon2Verify({ password: candidate, hash: userPassword });
 };

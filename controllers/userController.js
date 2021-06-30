@@ -20,6 +20,8 @@ exports.getSingleUser = async (req, res, next) => {
     try {
         const retrievedUser = await User.findById(req.params.id);
 
+        retrievedUser.createPasswordResetToken();
+
         res.status(201).json({
             status: 'success',
             data: retrievedUser
@@ -44,31 +46,6 @@ exports.updateUser = async (req, res, next) => {
             status: 'success',
             data: updatedUser
         });
-    } catch (err) {
-        res.status(400).json({
-            status: 'fail',
-            message: err.message
-        });
-    };
-};
-
-exports.checkPass = async (req, res, next) => {
-    try {
-        const user = await User.findById(req.params.id).select('+password');
-
-        const result = await user.correctPassword(req.body.password, user.password);
-
-        if (result) {
-            res.status(201).json({
-                status: 'success',
-                message: 'Password matches'
-            });
-        } else {
-            res.status(401).json({
-                status: 'fail',
-                message: 'Incorrect username or password'
-            });
-        };
     } catch (err) {
         res.status(400).json({
             status: 'fail',

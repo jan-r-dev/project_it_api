@@ -5,47 +5,50 @@ const util = require('util');
 
 const retrievePem = async () => {
     const readFile = util.promisify(fs.readFile);
-    const key = await readFile(`${__dirname}/key.pem`, { encoding: 'utf-8' });
+    const key = await readFile(`${__dirname}/../utils/key.pem`, { encoding: 'utf-8' });
 
     return key;
 };
 
 const signToken = async id => {
-    try {
-        const key = await retrievePem();
+    const key = await retrievePem();
 
-        return jwt.sign(
-            { id: id },
-            key,
-            {
-                algorithm: 'PS512',
-                expiresIn: '90d'
-            }
-        );
-    } catch (err) {
-        console.log(err.message);
-    };
+    return jwt.sign(
+        { id: id },
+        key,
+        {
+            algorithm: 'PS512',
+            expiresIn: '90d'
+        }
+    );
 };
 
-const createSendToken = async (user, statusCode, res) => {
-    const token = await signToken(user._id);
+const createJwtToken = async (user, statusCode, res) => {
+    try {
+        const token = await signToken(user._id);
 
-    const cookieOptions = {
-        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 1),
-        secure: false,
-        httpOnly: true
-    }
-
-    res.cookie('jwt', token, cookieOptions);
-    user.password = undefined;
-
-    res.status(statusCode).json({
-        status: 'success',
-        token,
-        data: {
-            user
+        const cookieOptions = {
+            expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 1),
+            secure: false,
+            httpOnly: true
         }
-    });
+
+        res.cookie('jwt', token, cookieOptions);
+        user.password = undefined;
+
+        res.status(statusCode).json({
+            status: 'success',
+            token,
+            data: {
+                user
+            }
+        });
+    } catch (err) {
+        res.status(400).json({
+            status: 'fail',
+            message: err
+        });
+    };
 };
 
 exports.loginUser = async (req, res, next) => {
@@ -57,7 +60,7 @@ exports.loginUser = async (req, res, next) => {
         const result = await user.correctPassword(req.body.password, user.password);
 
         if (result) {
-            createSendToken(user, 200, res);
+            createJwtToken(user, 200, res);
         } else {
             res.status(401).json({
                 status: 'fail',
@@ -116,9 +119,33 @@ exports.changePassword = async (req, res, next) => {
 
         user.password = req.body.newPassword;
         user.passwordConfirm = req.body.newPasswordConfirm;
-    
+
         await user.save();
-        createSendToken(user, 200, res);
+        createJwtToken(user, 200, res);
+    } catch (err) {
+        res.status(401).json({
+            status: 'fail',
+            message: err
+        });
+    };
+};
+
+exports.forgotPassTokenGenerate = async (req, res, next) => {
+    try {
+        const forgetfulUser = await User.findOne({ email: req.body.email });
+
+        if (!forgetfulUser) throw ('There is no user with that email');
+
+        const resetToken = forgetfulUser.createPasswordResetToken();
+        await forgetfulUser.save({ validateBeforeSave: false });
+
+        // Send token with link to the user's email
+        // Not yet implemented
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Function not yet implemented'
+        });
     } catch (err) {
         res.status(401).json({
             status: 'fail',

@@ -10,12 +10,12 @@ router.route('/')
 router.route('/:id')
     .get(userController.getSingleUser)
     .patch(userController.updateUser)
-    
-router.route('/testing/:id')
-    .get(userController.checkPass);
 
 router.route('/login')
     .post(authController.loginUser);
+
+router.route('/forgotPassword')
+    .post(authController.forgotPassTokenGenerate);
 
 router.use(authController.validateAccess);
 
