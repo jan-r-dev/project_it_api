@@ -31,7 +31,11 @@ const projectSchema = new mongoose.Schema({
         type: String
     },
     progress_bar: {
-    type: [[Number]]
+        type: [[Number]]
+    },
+    user: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User'
     }
 });
 

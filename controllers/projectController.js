@@ -1,15 +1,10 @@
 const User = require('../models/userModel');
 const Project = require('../models/projectModel');
 
+// Retrieve all projects linked to current user
 exports.getAllProjects = async (req, res, next) => {
     try {
-        const projects = req.user.projects.map( el => {
-            return el._id;
-        });
-
-        console.log(projects);
-
-        const allProjects = await Project.find();
+        const allProjects = await Project.find({ user: req.user.id });
 
         res.status(201).json({
             status: 'success',
@@ -24,11 +19,15 @@ exports.getAllProjects = async (req, res, next) => {
     };
 };
 
+// Create project linked to current user
 exports.createProject = async (req, res, next) => {
     try {
+        // Assures that the project will be linked to the currently logged in user
+        if (req.body.user) req.body.user = undefined;
+        req.body.user = req.user.id;
+
         const newProject = await Project.create(req.body);
 
-        // CONTINUE FROM HERE
         res.status(201).json({
             status: 'success',
             data: newProject
@@ -36,17 +35,20 @@ exports.createProject = async (req, res, next) => {
     } catch (err) {
         res.status(400).json({
             status: 'fail',
-            data: err.message
+            data: err
         });
     };
 };
 
+// Update project linked to current user
 exports.updateProject = async (req, res, next) => {
     try {
-        const updatedProject = await Project.findByIdAndUpdate(req.params.id, req.body, {
+        const updatedProject = await Project.findOneAndUpdate({ user: req.user.id, _id: req.params.id }, req.body, {
             new: true,
-            runValidators: true
+            runValidators: true,
         });
+
+        if (!updatedProject) throw "Project does not exist or is not linked to your user account."
 
         res.status(201).json({
             status: 'success',
@@ -55,14 +57,17 @@ exports.updateProject = async (req, res, next) => {
     } catch (err) {
         res.status(400).json({
             status: 'fail',
-            message: err.message
+            message: err
         });
     };
 };
 
+// Retrieve singe project linked to current user
 exports.getSingleProject = async (req, res, next) => {
     try {
-        const singleProject = await Project.findById(req.params.id);
+        const singleProject = await Project.findOne({ user: req.user.id, _id: req.params.id });
+
+        if (!singleProject) throw "Project does not exist or is not linked to your user account."
 
         res.status(201).json({
             status: 'success',
@@ -71,7 +76,7 @@ exports.getSingleProject = async (req, res, next) => {
     } catch (err) {
         res.status(400).json({
             status: 'fail',
-            message: err.message
+            message: err
         });
     };
 };

@@ -45,13 +45,7 @@ const userSchema = new mongoose.Schema({
     active: {
         type: Boolean,
         default: true
-    },
-    projects: [
-        {
-            type: mongoose.Schema.ObjectId,
-            ref: 'Project'
-        }
-    ]
+    }
 });
 
 userSchema.pre('save', async function (next) {
