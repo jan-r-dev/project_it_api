@@ -2,6 +2,8 @@ const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const util = require('util');
+const sendEmail = require('../utils/mailer');
+const crypto = require('crypto');
 
 const retrievePem = async () => {
     const readFile = util.promisify(fs.readFile);
@@ -139,14 +141,41 @@ exports.forgotPassTokenGenerate = async (req, res, next) => {
         const resetToken = forgetfulUser.createPasswordResetToken();
         await forgetfulUser.save({ validateBeforeSave: false });
 
-        // Send token with link to the user's email
-        // Not yet implemented
+        // Currently ethereal nodemailer, no real account used
+        sendEmail(resetToken);
 
         res.status(200).json({
             status: 'success',
-            message: 'Function not yet implemented'
+            message: 'Instructions sent to email account'
         });
     } catch (err) {
+        res.status(401).json({
+            status: 'fail',
+            message: err
+        });
+    };
+};
+
+exports.forgotPassTokenConsume = async (req, res, next) => {
+    try {
+        if (!req.body.token) throw ('Please provide password reset token');
+
+        const hashedToken = crypto.createHash('sha256').update(req.body.token).digest('hex');
+        const user = await User.findOne({ passwordResetToken: hashedToken });
+
+        if (Date.now() > user.passwordResetExpires.getTime()) throw ('Password reset token expired');
+
+        if (!req.body.password || !req.body.passwordConfirm) throw ('Please provide new password and new password confirmation');
+
+        user.password = req.body.password;
+        user.passwordConfirm = req.body.passwordConfirm;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+
+        await user.save();
+        createJwtToken(user, 200, res);
+    } catch (err) {
+        console.log(err);
         res.status(401).json({
             status: 'fail',
             message: err

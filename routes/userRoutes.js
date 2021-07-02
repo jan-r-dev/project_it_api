@@ -14,8 +14,12 @@ router.route('/:id')
 router.route('/login')
     .post(authController.loginUser);
 
+// Generate token and consume
 router.route('/forgotPassword')
     .post(authController.forgotPassTokenGenerate);
+router.route('/resetPassword')
+    .post(authController.forgotPassTokenConsume);
+//
 
 router.use(authController.validateAccess);
 
